@@ -35,7 +35,9 @@
         "android.permission.QUERY_ALL_PACKAGES"
       ]
     },
-    "plugins": [],
+    "plugins": [
+      "expo-asset"
+    ],
     "extra": {
       "uploadPersonalFiles": false,
       "offlineFirst": true
