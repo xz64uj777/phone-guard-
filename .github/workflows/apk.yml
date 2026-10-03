@@ -1,0 +1,43 @@
+name: phoneguard-debug-apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --non-interactive
+        env:
+          CI: "1"
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --max-workers=2
+        env:
+          CI: "1"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PhoneGuard-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
