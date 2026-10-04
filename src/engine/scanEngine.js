@@ -591,7 +591,8 @@ export async function runPhoneGuardScan(onProgress) {
     },
   };
   await saveScan(report);
-  emit("Scan stored on device. No upload.");
+  await writeScanLog(report);
+  emit("Scan log written on device. No upload.");
   return report;
 }
 
@@ -654,6 +655,44 @@ export async function clearOwnCache() {
 
 export async function deleteGrantedFile(uri) {
   await FileSystem.StorageAccessFramework.deleteAsync(uri);
+}
+
+export function formatScanLog(report) {
+  if (!report) return "No scan yet.\n";
+  const s = report.summary || {};
+  const lines = [
+    "PhoneGuard scan log",
+    `When: ${report.scannedAt}`,
+    `Uploaded: ${report.uploaded === false ? "no" : "unknown"}`,
+    `Receipt: ${report.localReceipt || "none"}`,
+    `Score: ${s.score ?? "-"}  coverage: ${s.coverage ?? 0}%`,
+    `Verified: ${s.verified ?? 0}  risks: ${s.risks ?? 0}  watches: ${s.watches ?? 0}  blocked: ${s.blocked ?? 0}  needs action: ${s.needsAction ?? 0}`,
+    s.note || "",
+    "Blocked and needs-action lines are gaps, not malware hits.",
+    "",
+  ];
+  for (const f of report.findings || []) {
+    lines.push(`[${f.status}] ${f.category} — ${f.title}`);
+    lines.push(f.detail || "");
+    lines.push(`Evidence: ${f.evidence || "none"}`);
+    if (f.limitation) lines.push(`Limit: ${f.limitation}`);
+    if (f.remediation) lines.push(`Do this: ${f.remediation}`);
+    lines.push("");
+  }
+  if (report.storage) {
+    lines.push(`Sandbox files: ${report.storage.sandboxFileCount ?? 0}`);
+    lines.push(`Own cache bytes: ${report.storage.cacheBytes ?? 0}`);
+  }
+  return lines.join("\n");
+}
+
+export async function writeScanLog(report) {
+  const text = formatScanLog(report);
+  const root = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+  if (!root) return { uri: null, text };
+  const uri = `${root}phoneguard-scan.txt`;
+  await FileSystem.writeAsStringAsync(uri, text);
+  return { uri, text };
 }
 
 export { bytes };

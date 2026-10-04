@@ -4,6 +4,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
@@ -24,6 +25,7 @@ import {
   runPhoneGuardScan,
   saveSettings,
   scanGrantedFolder,
+  writeScanLog,
 } from "./src/engine/scanEngine";
 
 const TABS = [
@@ -99,6 +101,7 @@ export default function App() {
   const [folder, setFolder] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [notice, setNotice] = useState("");
+  const [logPath, setLogPath] = useState("");
 
   useEffect(() => {
     loadLastScan().then(setReport);
@@ -124,7 +127,9 @@ export default function App() {
       });
       setReport(next);
       setAlerts(await loadAlerts());
-      setStep("Done. Stored on this phone only.");
+      const written = await writeScanLog(next);
+      setLogPath(written.uri || "");
+      setStep("Done. Log saved on this phone.");
     } catch (error) {
       setStep(error?.message || "Scan failed.");
     } finally {
@@ -192,6 +197,20 @@ export default function App() {
     });
   }
 
+  async function shareLog() {
+    if (!report) {
+      setNotice("Run a scan first.");
+      return;
+    }
+    const written = await writeScanLog(report);
+    setLogPath(written.uri || "");
+    await Share.share({
+      title: "PhoneGuard scan log",
+      message: written.text,
+    });
+    setNotice(written.uri ? `Log file: ${written.uri}` : "Log shared. File path unavailable.");
+  }
+
   function jump(actionId) {
     const match = SETTINGS_ACTIONS.find((a) => a.id === actionId);
     if (match) openSettings(match.action);
@@ -220,6 +239,10 @@ export default function App() {
             <Pressable style={styles.primary} onPress={startScan} disabled={busy}>
               {busy ? <ActivityIndicator color={colors.bg} /> : <Text style={styles.primaryText}>Run local scan</Text>}
             </Pressable>
+            <Pressable style={styles.secondary} onPress={shareLog} disabled={!report}>
+              <Text style={styles.secondaryText}>Save and share log</Text>
+            </Pressable>
+            {logPath ? <Text style={styles.meta}>{logPath}</Text> : null}
             <Text style={styles.meta}>
               {report ? `Last scan ${report.scannedAt}` : "Offline-first. Personal files are not uploaded."}
             </Text>
