@@ -129,7 +129,9 @@ export default function App() {
       setAlerts(await loadAlerts());
       const written = await writeScanLog(next);
       setLogPath(written.uri || "");
-      setStep("Done. Log saved on this phone.");
+      setStep("Done. Results are below. Blocked lines are gaps, not hits.");
+      setTab("scan");
+      setFilter("all");
     } catch (error) {
       setStep(error?.message || "Scan failed.");
     } finally {
@@ -244,11 +246,15 @@ export default function App() {
             </Pressable>
             {logPath ? <Text style={styles.meta}>{logPath}</Text> : null}
             <Text style={styles.meta}>
-              {report ? `Last scan ${report.scannedAt}` : "Offline-first. Personal files are not uploaded."}
+              {report
+                ? `Last scan ${report.scannedAt} · ${report.summary.verified} verified · ${report.summary.blocked} blocked · ${report.summary.needsAction} need you`
+                : "Offline-first. Personal files are not uploaded."}
             </Text>
-            {findings.filter((f) => f.status === "risk" || f.status === "watch").slice(0, 3).map((item) => (
-              <FindingCard key={item.id} item={item} onAction={jump} />
-            ))}
+            {findings.length === 0 ? (
+              <Text style={styles.note}>No results yet. Run a scan. The list opens on the Scan tab.</Text>
+            ) : (
+              findings.slice(0, 8).map((item) => <FindingCard key={item.id} item={item} onAction={jump} />)
+            )}
           </View>
         )}
 
