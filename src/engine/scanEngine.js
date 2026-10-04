@@ -660,30 +660,45 @@ export async function deleteGrantedFile(uri) {
 export function formatScanLog(report) {
   if (!report) return "No scan yet.\n";
   const s = report.summary || {};
+  const problems = (report.findings || []).filter((f) => f.status === "risk" || f.status === "watch");
+  const yours = (report.findings || []).filter((f) => f.status === "needs_action");
+  const hidden = (report.findings || []).filter((f) => f.status === "not_accessible");
   const lines = [
-    "PhoneGuard scan log",
-    `When: ${report.scannedAt}`,
-    `Uploaded: ${report.uploaded === false ? "no" : "unknown"}`,
-    `Receipt: ${report.localReceipt || "none"}`,
-    `Score: ${s.score ?? "-"}  coverage: ${s.coverage ?? 0}%`,
-    `Verified: ${s.verified ?? 0}  risks: ${s.risks ?? 0}  watches: ${s.watches ?? 0}  blocked: ${s.blocked ?? 0}  needs action: ${s.needsAction ?? 0}`,
-    s.note || "",
-    "Blocked and needs-action lines are gaps, not malware hits.",
+    "PhoneGuard result",
+    problems.length
+      ? "Something checked did not look normal. Read the problem lines below."
+      : "Nothing wrong showed up in the parts this app is allowed to see.",
+    "This is not a full phone check. A high score does not mean the whole phone is clean.",
     "",
+    `Checked: ${s.verified ?? 0}. Problems: ${problems.length}. Hidden by Android: ${hidden.length}. Still up to you: ${yours.length}.`,
+    "Hidden means the app was not allowed to look. It is not a threat and it is not a pass.",
+    "",
+    "Could not check: other apps, their permissions, who owns the VPN, accessibility services, device admin, apps that draw on top, notification access, root, bootloader, battery health.",
+    "You can still check those in Samsung Settings. PhoneGuard cannot read those screens.",
+    yours.length ? "You can still do: Storage tab, scan a folder you choose, such as Downloads." : "",
+    "",
+    `When: ${report.scannedAt}`,
+    "Uploaded: no",
+    "",
+    "Details",
   ];
   for (const f of report.findings || []) {
-    lines.push(`[${f.status}] ${f.category} — ${f.title}`);
+    const word =
+      f.status === "ok"
+        ? "Checked"
+        : f.status === "watch"
+          ? "Look at this"
+          : f.status === "risk"
+            ? "Problem"
+            : f.status === "needs_action"
+              ? "You can check this"
+              : "Android hides this";
+    lines.push(`${word}: ${f.title}`);
     lines.push(f.detail || "");
-    lines.push(`Evidence: ${f.evidence || "none"}`);
-    if (f.limitation) lines.push(`Limit: ${f.limitation}`);
-    if (f.remediation) lines.push(`Do this: ${f.remediation}`);
+    if (f.remediation) lines.push(`What to do: ${f.remediation}`);
     lines.push("");
   }
-  if (report.storage) {
-    lines.push(`Sandbox files: ${report.storage.sandboxFileCount ?? 0}`);
-    lines.push(`Own cache bytes: ${report.storage.cacheBytes ?? 0}`);
-  }
-  return lines.join("\n");
+  return lines.filter((line) => line !== undefined).join("\n");
 }
 
 export async function writeScanLog(report) {

@@ -61,8 +61,8 @@ function ScoreRing({ score, coverage }) {
   return (
     <View style={styles.ring}>
       <Text style={[styles.ringScore, { color }]}>{score}</Text>
-      <Text style={styles.ringCaption}>verified score</Text>
-      <Text style={styles.ringMeta}>{coverage}% of checks verified</Text>
+      <Text style={styles.ringCaption}>of what it could see</Text>
+      <Text style={styles.ringMeta}>{coverage}% checked. The rest is hidden.</Text>
     </View>
   );
 }

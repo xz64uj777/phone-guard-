@@ -14,11 +14,11 @@ export const colors = {
 };
 
 export const statusLabel = {
-  ok: "Verified clear",
-  watch: "Verified watch",
-  risk: "Verified risk",
-  needs_action: "Needs your action",
-  not_accessible: "Not accessible",
+  ok: "Checked",
+  watch: "Look at this",
+  risk: "Problem",
+  needs_action: "You can check this",
+  not_accessible: "Android hides this",
 };
 
 export const statusColor = {
